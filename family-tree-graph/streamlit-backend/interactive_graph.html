@@ -1,0 +1,587 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 750px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 750px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "Arnav Modi", "label": "Arnav Modi", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sumesh Rawal", "label": "Sumesh Rawal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Nirav Murthy", "label": "Nirav Murthy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ritvik Kandarkar", "label": "Ritvik Kandarkar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Amir Selim", "label": "Amir Selim", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rajan Parikh", "label": "Rajan Parikh", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rithik Jain", "label": "Rithik Jain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Parth Patel", "label": "Parth Patel", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anthony Adly", "label": "Anthony Adly", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lucas Narine", "label": "Lucas Narine", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Neil Bhagat", "label": "Neil Bhagat", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rohan Nath", "label": "Rohan Nath", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Deep Dave", "label": "Deep Dave", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anmol Bal", "label": "Anmol Bal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pranav Iyer", "label": "Pranav Iyer", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ram Palanati", "label": "Ram Palanati", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Srikar Chikkala", "label": "Srikar Chikkala", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shivansh Kumar", "label": "Shivansh Kumar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Diwanshu Kumar", "label": "Diwanshu Kumar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ritvik Gadhok", "label": "Ritvik Gadhok", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Vidur Maheshwari", "label": "Vidur Maheshwari", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Suryansh Kumar", "label": "Suryansh Kumar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shlok Gore", "label": "Shlok Gore", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aakash Ramachandran", "label": "Aakash Ramachandran", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anirudh Natarajan", "label": "Anirudh Natarajan", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Yash Agarwal", "label": "Yash Agarwal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Zaid Jiwani", "label": "Zaid Jiwani", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pratik Bhat", "label": "Pratik Bhat", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ekansh Vashisth", "label": "Ekansh Vashisth", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pranav Sheokand", "label": "Pranav Sheokand", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anitej Bharadwaj", "label": "Anitej Bharadwaj", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Adithya Rao", "label": "Adithya Rao", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Param Shah", "label": "Param Shah", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Yash Dave", "label": "Yash Dave", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Arvind Iyengar", "label": "Arvind Iyengar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Advait Deoskar", "label": "Advait Deoskar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Praneeth Kanna", "label": "Praneeth Kanna", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aswinkarthik Rameshbabu", "label": "Aswinkarthik Rameshbabu", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Arnav Jain", "label": "Arnav Jain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rish Bellakka", "label": "Rish Bellakka", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shahrukh Shaikh", "label": "Shahrukh Shaikh", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Abhishek Bhutada", "label": "Abhishek Bhutada", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aman Thakur", "label": "Aman Thakur", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Nikhil Dilip", "label": "Nikhil Dilip", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pranav Ramachandra", "label": "Pranav Ramachandra", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Om Awate", "label": "Om Awate", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Abrar Karim", "label": "Abrar Karim", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ayush Bakhandi", "label": "Ayush Bakhandi", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anish Chikkaswamy", "label": "Anish Chikkaswamy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Neel Kandlikar", "label": "Neel Kandlikar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rohun Malhotra", "label": "Rohun Malhotra", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Vaarun Ramanathan", "label": "Vaarun Ramanathan", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Krish Patel", "label": "Krish Patel", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Neil Kamath", "label": "Neil Kamath", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Chiraphat Techasiri", "label": "Chiraphat Techasiri", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Joshua Kurian", "label": "Joshua Kurian", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aadi Agrawal", "label": "Aadi Agrawal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aayush Shah", "label": "Aayush Shah", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sebastian Reddy", "label": "Sebastian Reddy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aamir Hudda", "label": "Aamir Hudda", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dhanush Sunchu", "label": "Dhanush Sunchu", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tej Sathe", "label": "Tej Sathe", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aditya Satyadeep", "label": "Aditya Satyadeep", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Surya Rajan", "label": "Surya Rajan", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Arjun Venkatesh", "label": "Arjun Venkatesh", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Liam Patel", "label": "Liam Patel", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Venkat Kandukuri", "label": "Venkat Kandukuri", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kanishk Vankayala", "label": "Kanishk Vankayala", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Karan Bhakta", "label": "Karan Bhakta", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sashank Gadisetti", "label": "Sashank Gadisetti", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kabir Dua", "label": "Kabir Dua", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Samhith Padala", "label": "Samhith Padala", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Zain Passi", "label": "Zain Passi", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Praneel Pantula", "label": "Praneel Pantula", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tarkh Lingamallu", "label": "Tarkh Lingamallu", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Charith Myneni", "label": "Charith Myneni", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sreekar Nagulapalli", "label": "Sreekar Nagulapalli", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sid Kasi", "label": "Sid Kasi", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Abhinav Mukkamala", "label": "Abhinav Mukkamala", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Luke Matsui", "label": "Luke Matsui", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Joshua Thomas", "label": "Joshua Thomas", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Nathan Lee", "label": "Nathan Lee", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Neelesh Bokkisam", "label": "Neelesh Bokkisam", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Bartev Stepanian", "label": "Bartev Stepanian", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rahul Ravishankar", "label": "Rahul Ravishankar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ayush Misra", "label": "Ayush Misra", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sehoon Byun", "label": "Sehoon Byun", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Adith Mohanty", "label": "Adith Mohanty", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kush Goswami", "label": "Kush Goswami", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ibrahim Saiger", "label": "Ibrahim Saiger", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kevin Cheng", "label": "Kevin Cheng", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aditya Iyengar", "label": "Aditya Iyengar", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tejas Kannan", "label": "Tejas Kannan", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Raghav Kappagantula", "label": "Raghav Kappagantula", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Siddarth Seth", "label": "Siddarth Seth", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ani Surumpudi", "label": "Ani Surumpudi", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Taha Ziaee", "label": "Taha Ziaee", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pranay Patni", "label": "Pranay Patni", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Nikhil Reddy", "label": "Nikhil Reddy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kshitij Shah", "label": "Kshitij Shah", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rishabh Wason", "label": "Rishabh Wason", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rohit Verma", "label": "Rohit Verma", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jamal Ahmed", "label": "Jamal Ahmed", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kevin Fang", "label": "Kevin Fang", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shawn Grewal", "label": "Shawn Grewal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anish Deshpande", "label": "Anish Deshpande", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tejas Dhindsa", "label": "Tejas Dhindsa", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ishan Gurnani", "label": "Ishan Gurnani", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Justin Flesher", "label": "Justin Flesher", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"from": "Arnav Modi", "to": "Sumesh Rawal", "width": 1}, {"from": "Arnav Modi", "to": "Nirav Murthy", "width": 1}, {"from": "Sumesh Rawal", "to": "Ritvik Kandarkar", "width": 4}, {"from": "Sumesh Rawal", "to": "Amir Selim", "width": 4}, {"from": "Rajan Parikh", "to": "Rithik Jain", "width": 5}, {"from": "Rajan Parikh", "to": "Parth Patel", "width": 5}, {"from": "Rithik Jain", "to": "Anthony Adly", "width": 7}, {"from": "Rithik Jain", "to": "Lucas Narine", "width": 7}, {"from": "Neil Bhagat", "to": "Rohan Nath", "width": 2}, {"from": "Neil Bhagat", "to": "Deep Dave", "width": 2}, {"from": "Rohan Nath", "to": "Anmol Bal", "width": 4}, {"from": "Rohan Nath", "to": "Pranav Iyer", "width": 4}, {"from": "Rohan Nath", "to": "Ram Palanati", "width": 4}, {"from": "Srikar Chikkala", "to": "Shivansh Kumar", "width": 3}, {"from": "Srikar Chikkala", "to": "Diwanshu Kumar", "width": 3}, {"from": "Shivansh Kumar", "to": "Ritvik Gadhok", "width": 5}, {"from": "Shivansh Kumar", "to": "Vidur Maheshwari", "width": 5}, {"from": "Ram Palanati", "to": "Lucas Narine", "width": 4}, {"from": "Ram Palanati", "to": "Suryansh Kumar", "width": 4}, {"from": "Ram Palanati", "to": "Sumesh Rawal", "width": 4}, {"from": "Lucas Narine", "to": "Shlok Gore", "width": 7}, {"from": "Lucas Narine", "to": "Aakash Ramachandran", "width": 7}, {"from": "Suryansh Kumar", "to": "Anirudh Natarajan", "width": 6}, {"from": "Yash Agarwal", "to": "Zaid Jiwani", "width": 3}, {"from": "Yash Agarwal", "to": "Parth Patel", "width": 3}, {"from": "Yash Agarwal", "to": "Pratik Bhat", "width": 3}, {"from": "Zaid Jiwani", "to": "Ekansh Vashisth", "width": 6}, {"from": "Zaid Jiwani", "to": "Pranav Sheokand", "width": 6}, {"from": "Zaid Jiwani", "to": "Anitej Bharadwaj", "width": 6}, {"from": "Zaid Jiwani", "to": "Suryansh Kumar", "width": 6}, {"from": "Parth Patel", "to": "Adithya Rao", "width": 5}, {"from": "Parth Patel", "to": "Param Shah", "width": 5}, {"from": "Yash Dave", "to": "Param Shah", "width": 2}, {"from": "Yash Dave", "to": "Arvind Iyengar", "width": 2}, {"from": "Param Shah", "to": "Advait Deoskar", "width": 5}, {"from": "Param Shah", "to": "Praneeth Kanna", "width": 5}, {"from": "Param Shah", "to": "Aswinkarthik Rameshbabu", "width": 5}, {"from": "Param Shah", "to": "Arnav Jain", "width": 5}, {"from": "Param Shah", "to": "Rish Bellakka", "width": 5}, {"from": "Param Shah", "to": "Shahrukh Shaikh", "width": 5}, {"from": "Abhishek Bhutada", "to": "Aman Thakur", "width": 1}, {"from": "Abhishek Bhutada", "to": "Nikhil Dilip", "width": 1}, {"from": "Aman Thakur", "to": "Pranav Ramachandra", "width": 4}, {"from": "Aman Thakur", "to": "Vidur Maheshwari", "width": 4}, {"from": "Ritvik Kandarkar", "to": "Om Awate", "width": 8}, {"from": "Ritvik Kandarkar", "to": "Abrar Karim", "width": 8}, {"from": "Anthony Adly", "to": "Anitej Bharadwaj", "width": 11}, {"from": "Anmol Bal", "to": "Ayush Bakhandi", "width": 6}, {"from": "Anmol Bal", "to": "Anish Chikkaswamy", "width": 6}, {"from": "Anmol Bal", "to": "Arnav Jain", "width": 6}, {"from": "Pranav Iyer", "to": "Neel Kandlikar", "width": 10}, {"from": "Pranav Iyer", "to": "Praneeth Kanna", "width": 10}, {"from": "Ritvik Gadhok", "to": "Rohun Malhotra", "width": 8}, {"from": "Ritvik Gadhok", "to": "Shlok Gore", "width": 8}, {"from": "Shlok Gore", "to": "Vaarun Ramanathan", "width": 8}, {"from": "Shlok Gore", "to": "Krish Patel", "width": 8}, {"from": "Shlok Gore", "to": "Ritvik Kandarkar", "width": 8}, {"from": "Anirudh Natarajan", "to": "Neil Kamath", "width": 10}, {"from": "Anirudh Natarajan", "to": "Pranav Ramachandra", "width": 10}, {"from": "Ekansh Vashisth", "to": "Chiraphat Techasiri", "width": 9}, {"from": "Ekansh Vashisth", "to": "Joshua Kurian", "width": 9}, {"from": "Pranav Sheokand", "to": "Aadi Agrawal", "width": 10}, {"from": "Pranav Sheokand", "to": "Chiraphat Techasiri", "width": 10}, {"from": "Anitej Bharadwaj", "to": "Aayush Shah", "width": 11}, {"from": "Anitej Bharadwaj", "to": "Sebastian Reddy", "width": 11}, {"from": "Anitej Bharadwaj", "to": "Aamir Hudda", "width": 11}, {"from": "Adithya Rao", "to": "Dhanush Sunchu", "width": 9}, {"from": "Adithya Rao", "to": "Tej Sathe", "width": 9}, {"from": "Advait Deoskar", "to": "Aditya Satyadeep", "width": 8}, {"from": "Advait Deoskar", "to": "Ritvik Gadhok", "width": 8}, {"from": "Praneeth Kanna", "to": "Surya Rajan", "width": 10}, {"from": "Praneeth Kanna", "to": "Anirudh Natarajan", "width": 10}, {"from": "Aswinkarthik Rameshbabu", "to": "Arjun Venkatesh", "width": 9}, {"from": "Aswinkarthik Rameshbabu", "to": "Adithya Rao", "width": 9}, {"from": "Arnav Jain", "to": "Aakash Ramachandran", "width": 6}, {"from": "Arnav Jain", "to": "Liam Patel", "width": 6}, {"from": "Arnav Jain", "to": "Zaid Jiwani", "width": 6}, {"from": "Rish Bellakka", "to": "Venkat Kandukuri", "width": 10}, {"from": "Rish Bellakka", "to": "Kanishk Vankayala", "width": 10}, {"from": "Rish Bellakka", "to": "Anish Chikkaswamy", "width": 10}, {"from": "Pranav Ramachandra", "to": "Karan Bhakta", "width": 10}, {"from": "Pranav Ramachandra", "to": "Sashank Gadisetti", "width": 10}, {"from": "Pranav Ramachandra", "to": "Vaarun Ramanathan", "width": 10}, {"from": "Vidur Maheshwari", "to": "Abrar Karim", "width": 5}, {"from": "Vidur Maheshwari", "to": "Rajan Parikh", "width": 5}, {"from": "Om Awate", "to": "Kabir Dua", "width": 13}, {"from": "Om Awate", "to": "Ayush Bakhandi", "width": 13}, {"from": "Ayush Bakhandi", "to": "Samhith Padala", "width": 13}, {"from": "Ayush Bakhandi", "to": "Karan Bhakta", "width": 13}, {"from": "Anish Chikkaswamy", "to": "Zain Passi", "width": 10}, {"from": "Anish Chikkaswamy", "to": "Pranav Iyer", "width": 10}, {"from": "Neel Kandlikar", "to": "Praneel Pantula", "width": 12}, {"from": "Neel Kandlikar", "to": "Tarkh Lingamallu", "width": 12}, {"from": "Rohun Malhotra", "to": "Charith Myneni", "width": 13}, {"from": "Vaarun Ramanathan", "to": "Sreekar Nagulapalli", "width": 10}, {"from": "Vaarun Ramanathan", "to": "Sid Kasi", "width": 10}, {"from": "Vaarun Ramanathan", "to": "Aditya Satyadeep", "width": 10}, {"from": "Krish Patel", "to": "Surya Rajan", "width": 11}, {"from": "Neil Kamath", "to": "Abhinav Mukkamala", "width": 14}, {"from": "Chiraphat Techasiri", "to": "Luke Matsui", "width": 10}, {"from": "Joshua Kurian", "to": "Joshua Thomas", "width": 11}, {"from": "Joshua Kurian", "to": "Nathan Lee", "width": 11}, {"from": "Aadi Agrawal", "to": "Neelesh Bokkisam", "width": 14}, {"from": "Aayush Shah", "to": "Kanishk Vankayala", "width": 15}, {"from": "Sebastian Reddy", "to": "Bartev Stepanian", "width": 16}, {"from": "Aditya Satyadeep", "to": "Rahul Ravishankar", "width": 10}, {"from": "Aditya Satyadeep", "to": "Pranav Sheokand", "width": 10}, {"from": "Surya Rajan", "to": "Neelesh Bokkisam", "width": 11}, {"from": "Surya Rajan", "to": "Rahul Ravishankar", "width": 11}, {"from": "Arjun Venkatesh", "to": "Abhinav Mukkamala", "width": 11}, {"from": "Aakash Ramachandran", "to": "Ayush Misra", "width": 7}, {"from": "Liam Patel", "to": "Sehoon Byun", "width": 8}, {"from": "Venkat Kandukuri", "to": "Rohun Malhotra", "width": 13}, {"from": "Karan Bhakta", "to": "Venkat Kandukuri", "width": 13}, {"from": "Sashank Gadisetti", "to": "Adith Mohanty", "width": 15}, {"from": "Sashank Gadisetti", "to": "Kush Goswami", "width": 15}, {"from": "Abrar Karim", "to": "Charith Myneni", "width": 8}, {"from": "Abrar Karim", "to": "Liam Patel", "width": 8}, {"from": "Kabir Dua", "to": "Sid Kasi", "width": 16}, {"from": "Samhith Padala", "to": "Praneel Pantula", "width": 16}, {"from": "Zain Passi", "to": "Sebastian Reddy", "width": 16}, {"from": "Praneel Pantula", "to": "Zain Passi", "width": 16}, {"from": "Sreekar Nagulapalli", "to": "Ibrahim Saiger", "width": 14}, {"from": "Sid Kasi", "to": "Adith Mohanty", "width": 16}, {"from": "Luke Matsui", "to": "Dhanush Sunchu", "width": 12}, {"from": "Rahul Ravishankar", "to": "Arjun Venkatesh", "width": 11}, {"from": "Neelesh Bokkisam", "to": "Neil Kamath", "width": 14}, {"from": "Abhinav Mukkamala", "to": "Sreekar Nagulapalli", "width": 14}, {"from": "Ayush Misra", "to": "Kush Goswami", "width": 9}, {"from": "Ayush Misra", "to": "Aswinkarthik Rameshbabu", "width": 9}, {"from": "Sehoon Byun", "to": "Ibrahim Saiger", "width": 9}, {"from": "Sehoon Byun", "to": "Kevin Cheng", "width": 9}, {"from": "Adith Mohanty", "to": "Samhith Padala", "width": 16}, {"from": "Kush Goswami", "to": "Aayush Shah", "width": 15}, {"from": "Ibrahim Saiger", "to": "Bartev Stepanian", "width": 14}, {"from": "Bartev Stepanian", "to": "Joshua Thomas", "width": 16}, {"from": "Nikhil Dilip", "to": "Aditya Iyengar", "width": 1}, {"from": "Aditya Iyengar", "to": "Tejas Kannan", "width": 1}, {"from": "Tejas Kannan", "to": "Raghav Kappagantula", "width": 1}, {"from": "Raghav Kappagantula", "to": "Arnav Modi", "width": 1}, {"from": "Nirav Murthy", "to": "Siddarth Seth", "width": 1}, {"from": "Siddarth Seth", "to": "Ani Surumpudi", "width": 1}, {"from": "Ani Surumpudi", "to": "Taha Ziaee", "width": 1}, {"from": "Deep Dave", "to": "Yash Dave", "width": 2}, {"from": "Arvind Iyengar", "to": "Pranay Patni", "width": 2}, {"from": "Pranay Patni", "to": "Nikhil Reddy", "width": 2}, {"from": "Nikhil Reddy", "to": "Kshitij Shah", "width": 2}, {"from": "Kshitij Shah", "to": "Rishabh Wason", "width": 2}, {"from": "Pratik Bhat", "to": "Srikar Chikkala", "width": 3}, {"from": "Diwanshu Kumar", "to": "Rohit Verma", "width": 3}, {"from": "Jamal Ahmed", "to": "Kevin Fang", "width": 4}, {"from": "Kevin Fang", "to": "Shawn Grewal", "width": 4}, {"from": "Shawn Grewal", "to": "Rohan Nath", "width": 4}, {"from": "Amir Selim", "to": "Aman Thakur", "width": 4}, {"from": "Anish Deshpande", "to": "Tejas Dhindsa", "width": 5}, {"from": "Tejas Dhindsa", "to": "Ishan Gurnani", "width": 5}, {"from": "Ishan Gurnani", "to": "Shivansh Kumar", "width": 5}, {"from": "Kevin Cheng", "to": "Justin Flesher", "width": 9}, {"from": "Justin Flesher", "to": "Ayush Misra", "width": 9}, {"from": "Tej Sathe", "to": "Ekansh Vashisth", "width": 9}, {"from": "Aamir Hudda", "to": "Joshua Kurian", "width": 11}, {"from": "Nathan Lee", "to": "Krish Patel", "width": 11}, {"from": "Tarkh Lingamallu", "to": "Luke Matsui", "width": 12}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"nodes": {"color": {"border": "rgba(0,102,204,1)", "background": "rgba(102,178,255,1)", "highlight": {"border": "rgba(255,51,51,1)", "background": "rgba(255,153,153,1)"}}}, "edges": {"color": {"color": "rgba(102,102,102,0.8)"}, "arrows": {"to": {"enabled": true}}}, "physics": {"enabled": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
