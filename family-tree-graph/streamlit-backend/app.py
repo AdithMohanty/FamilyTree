@@ -2,8 +2,13 @@ import streamlit as st
 import pandas as pd
 import networkx as nx
 from pyvis.network import Network
+import os
 
-connections = pd.read_csv("Connections.csv")
+base_dir = os.path.dirname(__file__)
+
+connections_file = os.path.join(base_dir, "Connections.csv")
+
+connections = pd.read_csv(connections_file)
 
 G = nx.DiGraph()
 for i in connections.index:
