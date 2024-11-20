@@ -7,14 +7,14 @@ import os
 base_dir = os.path.dirname(__file__)
 
 connections_file = os.path.join(base_dir, "Connections.csv")
+names_and_weights_file = os.path.join(base_dir, "NamesAndWeights.csv")
+graph_output_file = os.path.join(base_dir, "interactive_graph.html")
 
 connections = pd.read_csv(connections_file)
 
 G = nx.DiGraph()
 for i in connections.index:
     G.add_edge(connections.loc[i, "Source"], connections.loc[i, "Target"], weight=int(connections.loc[i, "Weight"]))
-
-
 
 def find_shortest_path(source, target):
     try:
@@ -53,13 +53,14 @@ def visualize_graph():
     }
     """)
 
-    net.show("interactive_graph.html")
-    return "interactive_graph.html"
+    net.show(graph_output_file)
+    return graph_output_file
+
 def find_shortest_path_length(source, target):
     path = find_shortest_path(source, target)
     length = 0
 
-    allNames = pd.read_csv("NamesAndWeights.csv")
+    allNames = pd.read_csv(names_and_weights_file)
     weights = {}
     for i in range(len(allNames)):
       weights[allNames.loc[i, "Full Name"]] = int(allNames.loc[i, "Weight"])
@@ -84,4 +85,4 @@ if source and target:
         st.write(f"No path found between {source} and {target}")
 
 st.markdown("### Family Tree Visualization")
-st.components.v1.html(open("interactive_graph.html", "r").read(), height=750)
+st.components.v1.html(open(graph_output_file, "r").read(), height=750)
