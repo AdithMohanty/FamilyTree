@@ -58,6 +58,8 @@ def visualize_graph():
 
 def find_shortest_path_length(source, target):
     path = find_shortest_path(source, target)
+    if path is None:
+        return None
     length = 0
 
     allNames = pd.read_csv(names_and_weights_file)
