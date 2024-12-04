@@ -71,8 +71,8 @@ def find_shortest_path_length(source, target):
     
 st.title('The Organization Graph')
 
-source = st.text_input('Enter the source family member')
-target = st.text_input('Enter the target family member')
+source = st.selectbox('Enter the source family member', G.nodes())
+target = st.selectbox('Enter the target family member', G.nodes())
 
 if source and target:
     path = find_shortest_path(source, target)
